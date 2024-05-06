@@ -4,6 +4,7 @@ tags:
 aliases:
   - How I set this blog up.
 description: I go on a journey while putting this blogsite together.
+publish: 2024-05-06
 ---
 
 # Introduction
@@ -16,7 +17,7 @@ It wasn't without some difficulty though...
 Before I explain this next part, I need to provide some context:
 I have three monolithic Obsidian Vaults that I use for everything; one for University, one for Work, and one for my personal things. The blog article I had written was in a `blog/` subfolder of my personal vault, and while I could have moved it out, it would have somewhat broken the monolithic nature of my huge vaults, with everything interconnected. 
 
-Quartz is designed to host a whole Obsidian vault, and yupiel had issues even doing that ( add more detail #todo i believe it was related to hard linebreaks and also syncing an obsidian vault separately to the quartz instance). However, I needed to use quartz to host a *subfolder* of my Obsidian Vault, and this turned out to be quite the headache.
+Quartz is designed to host a whole Obsidian vault, and Yupiel had issues even doing that[^2]. However, I needed to use quartz to host a *subfolder* of my Obsidian Vault, and this turned out to be quite the headache.
 
 # The Process
 ## Bootstrapping
@@ -72,9 +73,6 @@ $ # Note - I didn't do this in the install step even though I could have.
 $ # Also note: bootstrap-cli literally says "don't do this unless you know what you're doing" lmao oops
 $ ln -s /home/siri/notes/blog /home/siri/code/blog/content
 ```
-
-^1e1ab4
-
 ## Path Resolution Pains
 This symbolic link was the start of my issues. Unlike in a normal Quartz instance, all of my wikilinks looked like `[[blog/Page Title]]`, where Quartz expected them to not have the leading directory. I couldn't even easily change this, as changing these values would fuck up the backlinks when writing the blog posts in Obsidian.
 At this point I was already considering just migrating my blog to it's own vault, just to make my life easier - but I reluctantly cracked open the Quartz codebase now living on my system, to see if there was an easy solution.
@@ -137,7 +135,7 @@ Only one problem:
 
 This was doing to be an issue, but not quite yet. Let's set up the repo first:
 ```sh
-$ git remote set-url origin https://github.com/Siri-chan/blog.git
+$ git remote set-url origin git@github.com:Siri-chan/blog.git
 ```
 
 So, I wrote a script:
@@ -154,15 +152,33 @@ Now, I just had to test it.
 ```
 $ chmod a+x ./commit.fish
 $ ./commit.fish
-
+hint: Waiting for your editor to close the file...
+(re.sonny.Commit:261405): [Editor Output Omitted]
+[v4 ddbf4d5] Test of `commit.fish`
+ 10 files changed, 817 insertions(+), 23 deletions(-)
+ create mode 100755 commit.fish
+ delete mode 100644 content/.gitkeep
+ create mode 100644 content/Hosting a Subfolder of an Obsidian Vault on Quartz.md
+ create mode 100644 content/How I built a C compiler, how you can too, and why you shouldn't..md
+ create mode 100644 content/Supplementary/Supplementaries >> Quartz.md
+ create mode 100644 content/index.md
+ $ git checkout -b publish
+ $ git push --set-upstream origin publish                    12.9s  Mon 06 May 2024 02:15:06 PM AEST
+Enumerating objects: 8760, done.
+Counting objects: 100% (8760/8760), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (3201/3201), done.
+Writing objects: 100% (8760/8760), 6.62 MiB | 1.98 MiB/s, done.
+Total 8760 (delta 5494), reused 8702 (delta 5452), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (5494/5494), done.
+To github.com:Siri-chan/blog.git
+ * [new branch]      publish -> publish
+branch 'publish' set up to track 'origin/publish'.
 ```
-
-
-> #todo keep goin
-
-
-# In Conclusion,
-This was a weird article to write, especially doing something kinda #meta as my first real post, but I really thought that documenting this journey would be a good exercise to start finishing posts. I also thought that it would have been simpler than it ended up being, since I had some hope that [[#^1e1ab4|my first solution]] would just work, with some tweaks to the default configuration.
+Looking on Github, everything worked!
+Now, we can just whip up a `deploy.yaml` as per [the docs](https://quartz.jzhao.xyz/hosting), and then things should be live, and sure enough, they are. 
+# Conclusion
+This was a weird article to write, especially doing something kinda #meta as my first real post, but I really thought that documenting this journey would be a good exercise to start finishing posts. I also thought that it would have been simpler than it ended up being, since I had some hope that everything would just work, with some tweaks to the default configuration.
 That hope was unfounded, and this article became a behemoth of it's own as a result.
 
 I do hope at least that you enjoyed reading about this process, and that you learned a thing or two along the way.
@@ -171,3 +187,4 @@ Until you see me again,
 	**Siri.**
 
 [^1]: Here's [the log](https://yupiel.github.io/thoughts/projects/PD2-Heister's-Haptics) he sent.
+[^2]: Nothing major, just issues with hard line-breaks, and syncing his vault with GitHub separately from the Quartz repo.

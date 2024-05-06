@@ -13,11 +13,11 @@ Here is an index of articles by release date:
 
 | **Date**     | **Title**                                              | **Description**                                           | **Tags** |
 | ------------ | ------------------------------------------------------ | --------------------------------------------------------- | -------- |
-| `2024-05-XX` | [[Hosting a Subfolder of an Obsidian Vault on Quartz]] | *I go on a journey while putting this blogsite together.* | #meta    |
+| `2024-05-06` | [[Hosting a Subfolder of an Obsidian Vault on Quartz]] | *I go on a journey while putting this blogsite together.* | #meta    |
 
 I update this index manually, so if articles are missing etc, let me know.
 The **Title** field should link to the article, and clicking on any of an article's **Tags** should show you a list of all pages with that tag (including this one)
 
 # Technical Details
 This blog is built atop an [Obsidian](https://obsidian.md/) Vault, using [Quartz](https://quartz.jzhao.xyz/) and some custom CSS, and is hosted on Github Pages.
-You can see the source for this [on Github](TODO)( #todo), or read more about [[Hosting a Subfolder of an Obsidian Vault on Quartz|how I set this blog up.]]
+You can see the source for this [on Github](https://github.com/Siri-chan/blog), or read more about [[Hosting a Subfolder of an Obsidian Vault on Quartz|how I set this blog up.]]

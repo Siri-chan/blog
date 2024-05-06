@@ -1,7 +1,7 @@
 ---
 tags:
   - succ
-dr: "true"
+draft: "true"
 ---
 
 <!-- 
