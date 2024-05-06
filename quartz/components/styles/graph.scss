@@ -1,9 +1,15 @@
 @use "../../styles/variables.scss" as *;
 
 .graph {
+  margin-top: 20px;
+  border-radius: 5%;
+  background-color: var(--lightgray);
+  width: 50%;
+  margin: auto;
+
   & > h3 {
-    font-size: 1rem;
-    margin: 0;
+    font-size: 1.5rem;
+    text-align: center;
   }
 
   & > .graph-outer {
