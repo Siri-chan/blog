@@ -88,7 +88,7 @@ Here are the issues  I faced, and the changes I made.
 	This was as easy as setting `config.configuration.theme.typography.code` to a more pleasant font. In this case, JetBrains Mono.
 	I also had to go font browsing, for body and heading fonts that look good with the `ja_JP` locale.
 	(*Many fonts just fallback to an ugly OS-default when faced with* 漢字)
-	I ended up being a bit indecisive on the header font, as the font I initially picked was a bit too stylized for my taste, and also being too small (without messing with a lot of CSS), but I settled on Aoboshi One, after trying several other fonts.
+	I ended up being a bit indecisive on the header font, as the font I initially picked was a bit too stylized for my taste, and also being too small (without messing with a lot of CSS), but I almost settled on Aoboshi One, after trying several other typefaces, but eventually gave up and just used Noto Sans.
 	For the body though, M PLUS was an obvious choice.
 	While JetBrains Mono doesn't support Japanese characters, I doubt I will use many (if any) in code blocks in the future, so I hope this will just be fine.
 3. Github's Syntax Highlighting colors are vague and don't fit anything well.
@@ -101,8 +101,8 @@ Here are the issues  I faced, and the changes I made.
 My next step was to tidy up the default layout to better fit my preferences - I wanted to put the `Graph` and `Backlinks` components into the footer, just leaving the `TableOfContents` on the right, but attempting to do so made Quartz really unhappy:
 ->**\[**[[Supplementaries >> Quartz#A Truly Awful Error Message|Message Moved for Article Readability]]**\]**<-
 **Holy shit.** 
-Well, for better or worse, it turns out that you can't have multiple elements in the footer. 
-So I decided to put the graph down the bottom, and then leave the backlinks where they were, on the right.
+Well, for better or worse, it turns out that you can't have multiple elements in the footer.[^3] 
+While I could have made my own custom footer component, that sounded like a lot of work, so I just decided to put the graph down the bottom, and to leave the backlinks where they were, on the right.
 The graph view required some gnarly CSS to get it centered and looking okay, but I eventually got it to a servicable state:
 ```diff
 diff --git a/quartz/components/styles/graph.scss b/quartz/components/styles/graph.scss
@@ -143,13 +143,15 @@ So, I wrote a script:
 ```sh
 #!/usr/bin/env fish
 set CONTENT_DIR $(readlink content)
-rm content && cp -r $CONTENT_DIR content && git add . && git commit && rm -rf content && ln -sr $CONTENT_DIR content
+rm content && cp -r $CONTENT_DIR content 
+git add . && git commit 
+rm -rf content && ln -sr $CONTENT_DIR content
 ```
 This script moves the content directory out of its symlink, commits, and then removes it again.
 The big chain of `&&` is necessary as a failsafe in case any of the operations fail.
 This behavior seems similar to how `quartz sync` works, but I trust my own code more, if I'm honest.
 Now, I just had to test it.
-```
+```sh
 $ chmod a+x ./commit.fish
 $ ./commit.fish
 hint: Waiting for your editor to close the file...
@@ -188,3 +190,4 @@ Until you see me again,
 
 [^1]: Here's [the log](https://yupiel.github.io/thoughts/projects/PD2-Heister's-Haptics) he sent.
 [^2]: Nothing major, just issues with hard line-breaks, and syncing his vault with GitHub separately from the Quartz repo.
+[^3]: `footer` is a `QuartzComponent`, rather than a `QuartzComponent[]` like the other layout positions.

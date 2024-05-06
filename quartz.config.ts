@@ -20,7 +20,7 @@ const config: QuartzConfig = {
       fontOrigin: "googleFonts",
       cdnCaching: true,
       typography: {
-        header: "Aoboshi One",
+        header: "Noto Sans JP",
         body: "M PLUS 2",
         code: "JetBrains Mono",
       },
