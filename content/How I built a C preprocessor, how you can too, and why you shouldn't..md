@@ -1,7 +1,7 @@
 ---
 tags:
   - succ
-draft: "true"
+publish: 2024-05-08
 ---
 <!-- 
 This article and those that follow it are informational, documenting the process, my decisions, and the things I learned while building `succ`. Consider the contents of this text to be protected under my copyright.
@@ -51,7 +51,7 @@ before compiling anything.
 
 I was only half-right.
 Every C compiler that I looked into expanded the text-file in the same step as tokenisation, meaning that - at best - the compiler would be able to restructure the tokens into inexact source code (and output it to `stdout`, not directly to a file), and at worst, it would complain about incorrect or otherwise unexpected tokens, and not expand anything but valid C code.
-<!-- todo succ should actually have a preserve-comments-through-preprocessing flag -->
+<!-- note to self:  succ should actually have a preserve-comments-through-preprocessing flag -->
 This obviously isn't what I needed, so I had it set in my mind that I wanted to write a C preprocessor of the quality I wanted in this case.
 
 Then, it came to me. 
@@ -505,7 +505,8 @@ This code is hopefully self-explanatory, and not super important for this behavi
 
 ##### `undefine()`
 This is also a super trivial function. We search over our macro list and then remove the macros that have a matching name.
-For some reason, I return an empty `Vec<String>` here, rather than nothing.  #todo I should probably make this logic more consistent within succ.
+For some reason, I return an empty `Vec<String>` here, rather than nothing. 
+<!-- Note to self: I should probably make this logic more consistent within succ. -->
 
 ### Substituting Macros
 Macro substitution isn't awfully complicated, but does have some curiosities.
@@ -566,13 +567,14 @@ text.replace_range(offset..offset + i + 1, &replace);
 
 I think that covers everything there is to know about `succ`'s preprocessor. I have a couple more articles in the works covering other parts of `succ`, which I was writing as I worked on them, but need a lot of tidying and so on.
 
+Even this article has a few things that I wanted to resolve before publishing, but eventually conceded to. If you grep `to self` in the source code for  this article, you will find a couple of things I still aim to implement
+
 Until you see me again,
 	**Siri.**
 
 [^1]: Transpile - Rather than *compiling* (transforming source code to machine code), *transpiling* transforms source code into a different language's source code. 
 
-[^2]: In some projects, I use a reversed `Vec`, and pop off of it's top, to parse the arguments in order. In `succ`, however, I ran some micro-benchmarks, and found that using `VecDeque::pop_front()`, and not modifying the order of `Args` was actually more performant than the (surprisingly costly) operation of reversing the `Args` into a `Vec`, even though `pop()` is quicker than `pop_front()`. Beyond that, if an argument that breaks the parse - such as `--version`, which prints the version information and immediately exits - is encountered, some of the time spent reversing the `Vec` is wasted. 
-<!-- TODO: Create some micro-benchmarks and test this.-->
+[^2]: In some projects, I use a reversed `Vec`, and pop off of it's top, to parse the arguments in order. In `succ`, however, I ran some micro-benchmarks, and found that using `VecDeque::pop_front()`, and not modifying the order of `Args` was actually more performant than the (surprisingly costly) operation of reversing the `Args` into a `Vec`, even though `pop()` is quicker than `pop_front()`. Beyond that, if an argument that breaks the parse - such as `--version`, which prints the version information and immediately exits - is encountered, some of the time spent reversing the `Vec` is wasted.  *Note: The precise results of this benchmark are lost to time, and `cargo bench` is somehow **still** unstable and I couldn't be bothered to set it up, so I have no proof of this claim.*
 
 [^3]: On some OSes, or when executing a command in some programming languages, `args[0]` can be specified by the user, or is just the first argument passed from the shell. `succ` considers this to be incorrect behaviour on the OS's end.
 
