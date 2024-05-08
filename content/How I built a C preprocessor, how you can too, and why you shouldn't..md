@@ -2,6 +2,7 @@
 tags:
   - succ
 publish: 2024-05-08
+description: I build a C preprocessor and somehow succeed.
 ---
 <!-- 
 This article and those that follow it are informational, documenting the process, my decisions, and the things I learned while building `succ`. Consider the contents of this text to be protected under my copyright.

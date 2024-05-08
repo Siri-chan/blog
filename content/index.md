@@ -11,9 +11,10 @@ You will probably notice that the blog's locale is set to `ja_JP`. This is just 
 # Index 
 Here is an index of articles by release date:
 
-| **Date**     | **Title**                                              | **Description**                                           | **Tags** |
-| ------------ | ------------------------------------------------------ | --------------------------------------------------------- | -------- |
-| `2024-05-06` | [[Hosting a Subfolder of an Obsidian Vault on Quartz]] | *I go on a journey while putting this blogsite together.* | #meta    |
+| **Date**     | **Title**                                                                 | **Description**                                           | **Tags** |
+| ------------ | ------------------------------------------------------------------------- | --------------------------------------------------------- | -------- |
+| `2024-05-08` | [[How I built a C preprocessor, how you can too, and why you shouldn't.]] | *I build a C preprocessor and somehow succeed.*           | #succ    |
+| `2024-05-06` | [[Hosting a Subfolder of an Obsidian Vault on Quartz]]                    | *I go on a journey while putting this blogsite together.* | #meta    |
 
 I update this index manually, so if articles are missing etc, let me know.
 The **Title** field should link to the article, and clicking on any of an article's **Tags** should show you a list of all pages with that tag (including this one)
