@@ -381,7 +381,7 @@ pre {
       }
 
       &::before {
-        content: counter(line);
+        /* content: counter(line); */
         counter-increment: line;
         width: 1rem;
         margin-right: 1rem;

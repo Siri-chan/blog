@@ -3,10 +3,9 @@ tags:
   - succ
 draft: "true"
 ---
-
 <!-- 
-This article is a work-in progress, documenting the process, my decisions, and the things I learned while building `succ`. Consider the contents of this text to be protected under my copyright.
-I expect it to not be reproduced in any form without my written permission.
+This article and those that follow it are informational, documenting the process, my decisions, and the things I learned while building `succ`. Consider the contents of this text to be protected under my copyright.
+I expect it to not be reproduced in any form without my expressed written permission.
 -->
 
 I have spent a **lot** of time recently, developing my C compiler, [`succ`](https://github.com/Siri-chan/succ). It has become a bit of an obsession, and I have found myself spending a lot of my time working on it.
@@ -31,24 +30,25 @@ For context, I was adding the year 2023 to the copyright comment for a large rep
 
 > I wish I could just write this header to one file, run a command, and have it fix all of this for me.
 
-Turns out, that's totally an option. While waiting for `awk` to finish, my brain thought of the following 'C'-like Haskell source file <!-- todo this comment here is a bit wordy and awkward -->(which I will give the extension `.chs`, which implies a `.hs` file that contains C macros, I will use a similar extension scheme for files like `.ctxt` later), and a related header.
-###### `copyright.chs`
-```c
+Turns out, that's totally an option. While waiting for `awk` to finish, my brain thought of the following 'C'-like Haskell source file (I gave this file the extension `.chs`, which implies a `.hs` file that contains C macros), and a related header.
+
+```c title="copyright.chs"
 #define COPYRIGHT_START_YEAR 2022
 #include<copyright.h>
 ```
-###### `copyright.h`
-```haskell
+
+```haskell title="copyright.h"
 -- Copyright (c) <My Workplace> COPYRIGHT_START_YEAR-2023.
 -- All Rights Reserved.
 ```
+
 A C compiler, such as `gcc`, would theoretically expand the text file out to
-###### `copyright.hs`
-```haskell
+```haskell title="copyright.hs"
 -- Copyright (c) <My Workplace> 2022-2023.
 -- All Rights Reserved.
 ```
 before compiling anything.
+
 I was only half-right.
 Every C compiler that I looked into expanded the text-file in the same step as tokenisation, meaning that - at best - the compiler would be able to restructure the tokens into inexact source code (and output it to `stdout`, not directly to a file), and at worst, it would complain about incorrect or otherwise unexpected tokens, and not expand anything but valid C code.
 <!-- todo succ should actually have a preserve-comments-through-preprocessing flag -->
@@ -62,7 +62,7 @@ Then, it came to me.
 
 So, that's what I did.
 I sat down, and ran the command that would drastically change what I would do with my spare time.
-```sh
+```sh ln=false
 cargo new succ
 ```
 The name `succ`, was just something I thought was funny at the time, because it ended with `cc`, as is traditional for C compilers, and it fit great with the name I'd thought of for the standalone preprocessor - `succ-pp`.
@@ -103,7 +103,7 @@ All of these tasks are trivial, but there are some decisions I did make:
 Obviously, in order to process files, `succ` needs a robust method of reading and storing them.
 For this, I use `succ`'s `SourceFile` structure.
 `SourceFile`s are a very simple struct. Just to show how simple it is, here is the entire declaration:
-```rust
+```rust ln=false
 #[derive(Clone, PartialEq, PartialOrd)]
 pub struct SourceFile {
     pub filename: String,
@@ -120,7 +120,7 @@ The most complicated part is changing their `Debug` display behaviour, so that t
 `SourceFiles` are very convenient, as they can be passed around, just like a `String`, and can hold both the filename and the file contents in a descriptive and sensible way. `succ` needs to keep track of filenames, primarily for the `__FILE__` macro (which I touch on later), and for outputting intermediate files, which are generated for each source file.
 
 `SourceFile`s are also easy to construct:
-```rust
+```rust ln=false
 SourceFile {
 	filename: arg.clone(),
 	contents: fs::read_to_string(&arg)
@@ -141,18 +141,16 @@ My first challenge was actually invoking my preprocessor function.
 At first, I did this synchronously, and actually shared some mutable information between files.
 This was a bad idea, partly because the entire compilation process (until linking) is completely per-file, and so sharing mutable information would make compilation dependent on other files, and also make `async` preprocessing impossible without `Mutex`es and a lot of needless complexity.
 Through a lot of iteration, and use of the wonderful `futures` crate, I settled on this:
-```rust
+```rust title="main.rs" ln=262
 let source_files = flags.source_files.clone();
 
 let promises = source_files.iter().map(|file| async {
-	if flags.verbose {
-		println!("Preprocessing file: {:?}", file.clone());
-	}
+	log::debug!("Preprocessing file: {:?}", file.clone());
 
 	preprocessor::process(
 		&file.clone(),
+		/* macros are defined per-file */
 		&flags.include_dirs,
-		flags.verbose,
 	)
 	.await
 });
@@ -168,7 +166,7 @@ Trigraphs are an oft-forgotten feature of older programming languages and typese
 As many old keyboards (and pre-ASCII character sets) didn't have support for all the characters we have now, C contains a system for typing less-common characters, even when your keyboard doesn't natively support them.
 These are called *Trigraphs*, and they are a character, preceded by a double question-mark (`??`).
 While they are oft-forgotten, and many modern programs have no support for them at all, C89 expects them do be dealt with before any other preprocessing step.
-Here is a full list of the trigraphs supported in C89:
+Here is a full list of the trigraphs supported in C89: [^11]
 
 | Trigraph | Translation |
 | -------- | ----------- |
@@ -183,7 +181,7 @@ Here is a full list of the trigraphs supported in C89:
 | `??-`    | `~`         |
 
 They are also simple to replace. If `succ` detects that a `??` sequence exists, it searches for, and replaces each trigraph in the file:
-```rust
+```rust title="preprocessor.rs" ln=207
 let text = file.contents.clone()
 	.replace("??=", "#")
 	.replace("??/", "\\")
@@ -199,14 +197,14 @@ When a source file is given to an application, it contains several things that d
 ### Escaped Newlines
 One such thing, is a newline that is escaped with `\` (ie. either `\\`+`\n` or `\\`+`\r`+`\n`).
 These need to be removed before pre-processor directives can be handled, as in many cases, multi-line `#define` definitions are written as such:
-```c
+```c ln=false
 #define COMPLEX_FUNCTIONALITY \
 int main(void) \
 { printf("Hello, World!"); }
 ```
 Neglecting to remove these escaped newlines will cause unintended behaviour within a macro.
 Similarly, something like this would work incorrectly:
-```c
+```c ln=false
 #define PI 3
 P\
 I
@@ -218,7 +216,7 @@ PI
 ```
 ### Comments
 Similarly, there are comments. You should already know what these are, but these also must be purged early into a file, or similarly unintended behaviour can occur, as multi-line comments need to be treated the same as escaped newlines:
-```c
+```c ln=false
 #define PI 3
 P/*
 	literally anything can go here
@@ -249,21 +247,19 @@ One convenience of this function, is that there are multiple directives, with si
 
 #### `#if` directives
 Thanks to the behaviour of these directives, and how they impact the structure of a source file, we have to handle these before any other directives, which is why one of the first things we call in `process_directives(...)` is 
-```rust
+```rust title="preprocessor.rs" ln=367
 directives::process_ifs(trimmed_line, macros, ifs, i);`
 ```
 *where `trimmed_line` is the line of the file, `macros` is a `Vec` containing macro definitions* (which we need for `#ifdef` and `#ifndef` - a data structure that I will talk about later), *`ifs` is a `Vec<If>`* (I'll touch on this in a moment), *and `i` is the line number.*
 
 The `If` data structure is a small, simple data structure, that stores the location and state of an `#if` directive.
-```rust
+```rust title="preprocessor.rs" ln=262
 #[derive(Debug)]
-
 /// Represents a `#if*` directive in the preprocessor.
 pub struct If {
     location: usize,
     enabled: bool,
 }
-
 impl If {
     /// Generates a new [`If`]. Convenience function.
     pub fn new(i: usize, c: bool) -> Self {
@@ -284,14 +280,15 @@ The process for `#ifdef`, and also, by extension, `#ifndef` [^7] is rather simpl
 
 `#endif` is also very trivial in it's behaviour.
 When it is encountered, we just pop an `If` from our `Vec`, or error, if there are none to pop.
-``` rust
-let _ = match ifs.pop() {
+```rust title="preprocessor/directives.rs" ln=80
+let corresponding_if = match ifs.pop() {
 	Some(i) => i,
     None => return Err(PreprocessingError::OverclosedIf),
 };
 ```
+
 Once we've handled our if directives, we check if any `If`s are not enabled, and if so, we short-circuit, as nothing else should be processed, given the if is closed.
-```rust
+```rust title="preprocessor.rs" ln=368
 for _if in ifs {
     if !_if.enabled {
         // We return empty if any `#if*` is disabled and the line is not an `#endif`
@@ -301,15 +298,17 @@ for _if in ifs {
 ```
 *Also note, that `if` is not a valid variable name, as it is a reserved keyword in Rust.*
 
+We the have a little behavior to ignore all lines that aren't directives, whenever an `#if` directive should disable text, and then a check that all of the `#if` directives are closed before the end of the file.
+
 #### Trivial Directives
-Some directives have incredibly simple behaviour. `#error` just returns an error message, `#using` is unsupported, `#pragma` does nothing, as I haven't defined any pragmas yet.
-`#line` also has no behaviour, as I have no idea how `succ`'s preprocessor can, in it's current state, support the functionality that `#line` requires.
+Some directives have incredibly simple behavior. `#error` just returns an error message, `#using` is unsupported, `#pragma` does nothing, as I haven't defined any pragmas yet.
+`#line` also has no behaviour, as I have no idea how `succ`'s preprocessor can, in it's current state, support the functionality that `#line` requires, so I have left it out.
 
 #### `#include`
 `#include` is the next meaningful directive that we process.
 Like `process_ifs(...)`, we have a function in the `directives` module, dedicated to the behaviour of `#include`.
 Its signature is as follows:
-```rust
+```rust ln=false
 directives::include(
 	trimmed_line,
 	cd_scan_directories,
@@ -331,8 +330,8 @@ The code for `#include` has several steps:
 Most of these steps are relatively simple. 
 - Finding the filename is the same process as a lot of the rest of our text manipulation. We also store what delimiter (`<> (IncludeType::SPECD)` or `"" (IncludeType::CD)`) is used, because they behave differently.
 
-- Generating our cached lists is relatively simple: 
-```rust
+- Generating our cached lists is trivial
+```rust title="preprocessor.rs" ln=156
 IncludeType::SPECD => {
 	scan_directories = match specd_scan_directories {
 		Some(ref v) => v.clone(),
@@ -359,7 +358,7 @@ This code simply checks if our `scan_directories` contains a value already, and 
 #### `#define` and `#undef`
 When we define a macro, we store its info in a little data structure specifically for this process.
 
-```rust
+```rust ln=false
 #[derive(Clone, PartialEq, PartialOrd, Debug)]
 pub struct Macro {
     pub alias: String,
@@ -372,13 +371,13 @@ pub struct Macro {
 The structure is set up to be simple and still have everything we need.
 - `alias` is the string we look for to replace.
 - `args` is an option because it also allows us to much more easily differenciate between macros with and without arguments (ie. `#define PI 3` vs `#define PRINT(x) printf("%s", x)`)
-- `definition` is it's own enum, because there are a few specific [[#macro behaviours]] ( #todo talk about `__LINE__` and ``__FILE__`` etc.) that need to be implemented specifically. 
+- `definition` is it's own enum, because there are a few specific [[#^35c902|builtin macros]] that need to be implemented specifically. 
 - Finally, we have `can_undef`, which is solely setup to prevent using `#undef` on built-in macros.
 We hold a mutable `Vec<Macro>` for each file, that gets borrowed by `define()` and `undefine()`.
 
 ##### `define()`
 In define, we pull the different components of the macro out from the line:
-```rust
+```rust ln=false 
 let mut words = trimmed_line.split(' ');
 //remove the "#define" from the iterator
 words.next(); 
@@ -401,7 +400,7 @@ let mut tail_start = match trimmed_line.find(macro_name) {
 `macro_name` directly maps to `alias` in the `Macro` struct.
 
 As mentioned before, some macros have arguments. We handle these now, because our behavior diverges a bit depending on if or not we have arguments.
-```rust
+```rust ln=false
 let mut args: Option<Vec<String>> = None;
 if macro_name.contains('(') {
 	let Some(i) = macro_name.find('(') else {
@@ -443,7 +442,7 @@ if macro_name.contains('(') {
 }
 ```
 This code does quite a lot, but a lot is just verbose and explicit error handling, so let's break down just the actual behavior.
-```rust 
+```rust ln=false
 // Only perform this if the macro has arguments
 if macro_name.contains('(') {
 	// Remove the args from the macro name
@@ -485,7 +484,7 @@ if macro_name.contains('(') {
 I actually neglected to write this functionality for a while, because figuring this parsing logic out was actually rather challenging[^9]. 
 
 Finally, `define()` pulls out the tail of the line, and assigns `definition` appropriately.
-```rust
+```rust title="preprocessor/directives.rs" ln=336
  let tail = 
 	String::from(&trimmed_line[tail_start + 1..trimmed_line.len()])
 	.trim()
@@ -509,15 +508,71 @@ This is also a super trivial function. We search over our macro list and then re
 For some reason, I return an empty `Vec<String>` here, rather than nothing.  #todo I should probably make this logic more consistent within succ.
 
 ### Substituting Macros
+Macro substitution isn't awfully complicated, but does have some curiosities.
+Firstly, we pull in whatever relevant line, and convert it to an owned string.
+When we iterate over our macros, and then each occurrence of the macro in the text.
 
+For each Macro, we handle it differently, depending on if the macro has arguments or not.
+If it doesn't ave arguments, we just substitute whatever text.
 
+```rust title="preprocessor.rs" ln=487 
+let offset = match text.find(&_macro.alias) {
+	Some(offset) => offset,
+	None => unreachable!(), //we already know for certain that `text` contains `&_macro.alias`.
+							//We checked this in the `while`.
+};
+log::debug!("Found macro {:?} at character {}.", &_macro, offset);
+let replace = match &_macro.definition {
+	Definition::Fn(f) => (f)(file.clone(), line_number),
+	Definition::Empty => String::from(""),
+	Definition::String(s) => s.clone(),
+};
+log::debug!("Replacing with definition: \"{}\"", replace);
+text.replace_range(offset..(offset + _macro.alias.len()), &replace);
+```
 
-#todo
+This is where our `Definition` enum comes in, as our different definitions help us with different behavior.
+- `Definition::Empty` is just a empty defintion to use with `#ifdef`.
+- `Definition::String` is a user-created string definition with or without arguments.
+- `Definition::Fn` is used for a couple of special macros defined by the compiler, such as `__LINE__` and `__DATE__`[^10]. 
+We behave accordingly with the enum, and then substitute the macro with its value. ^35c902
+
+If it has arguments, we read the value to substitute, and then we do a pattern substitution, before proceeding as above.
+```rust ln=false
+let offset = text.find(&_macro.alias);
+let line = &text[offset..text.len()];
+let i = line.find(')').unwrap();
+let line = &line[_macro.alias.len() + 1..i];
+let argv = &line.split(',').map(|s| s.trim()).collect::<Vec<&str>>();
+
+// Note that Fn Definitions cannot have arguments, and that empty defintions will never have content to replace.
+let replace = match &_macro.definition {
+	Definition::Fn(f) => (f)(file.clone(), line_number),
+	Definition::Empty => String::from(""),
+	Definition::String(s) => {
+		let mut ss = s.clone();
+		for (i, arg) in args.iter().enumerate() {
+			let arg = arg.trim();
+			ss = ss.replace(arg, &argv[i]);
+		}
+		ss
+	}
+};
+text.replace_range(offset..offset + i + 1, &replace);
+```
+*Error handling and debug logs removed for brevity.*
+
+# Conclusion
+
+I think that covers everything there is to know about `succ`'s preprocessor. I have a couple more articles in the works covering other parts of `succ`, which I was writing as I worked on them, but need a lot of tidying and so on.
+
+Until you see me again,
+	**Siri.**
 
 [^1]: Transpile - Rather than *compiling* (transforming source code to machine code), *transpiling* transforms source code into a different language's source code. 
 
 [^2]: In some projects, I use a reversed `Vec`, and pop off of it's top, to parse the arguments in order. In `succ`, however, I ran some micro-benchmarks, and found that using `VecDeque::pop_front()`, and not modifying the order of `Args` was actually more performant than the (surprisingly costly) operation of reversing the `Args` into a `Vec`, even though `pop()` is quicker than `pop_front()`. Beyond that, if an argument that breaks the parse - such as `--version`, which prints the version information and immediately exits - is encountered, some of the time spent reversing the `Vec` is wasted. 
-<!-- todo make a page on this -->
+<!-- TODO: Create some micro-benchmarks and test this.-->
 
 [^3]: On some OSes, or when executing a command in some programming languages, `args[0]` can be specified by the user, or is just the first argument passed from the shell. `succ` considers this to be incorrect behaviour on the OS's end.
 
@@ -530,4 +585,9 @@ For some reason, I return an empty `Vec<String>` here, rather than nothing.  #to
 [^7]: Notably, `#ifndef` behaves identically, except with a single boolean inversion at the end.
 
 [^8]: This is done using the `async_recursion` crate, because Rust generally gets unhappy with recursive calls to async functions otherwise.
+
 [^9]: See [the `macroargs` branch](https://github.com/Siri-chan/succ/commits/macroargs/), from commit `314dc8b` onward.
+
+[^10]: The definitions for these are sort of interesting, but I don't know where in this article I would put them, so they are located in [[Supplementaries >> succ#Definitions of Fn Macros]]
+
+[^11]: Thanks to how tables work in markdown, I cannot just use a pipe (`|`) character within a table, even if its within a code block. This is the best I've got.
